@@ -5,11 +5,14 @@
     <div id="player"></div>
 
     <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
-
+    <style>
+      ol{height:200px; width:18%;}
+      ol{overflow:hidden; overflow-y:scroll;}
+    </style>
     <script>
       // 2. This code loads the IFrame Player API code asynchronously.
       var tag = document.createElement('script');
-
+      var videoStack = []; 
       tag.src = "https://www.youtube.com/iframe_api";
       var firstScriptTag = document.getElementsByTagName('script')[0];
       firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
@@ -27,20 +30,6 @@
             'onStateChange': onPlayerStateChange
           }
         });
-
-      }
-
-      function changeYTSong(newVideoId) {
-        player = new YT.Player('player', {
-          height: '390',
-          width: '640',
-          videoId: newVideoId,
-          events: {
-            'onReady': onPlayerReady,
-            'onStateChange': onPlayerStateChange
-          }
-        });
-
       }
 
       // 4. The API will call this function when the video player is ready.
@@ -56,6 +45,12 @@
         if (event.data == YT.PlayerState.PLAYING && !done) {
           setTimeout(stopVideo, 6000);
           done = true;
+        }else if(event.data == YT.PlayerState.ENDED && done) {
+          if(videoStack.length>0){
+            newVideoId=videoStack.pop();
+            player.loadVideoById(newVideoId);
+            $('#queue li:last-child').remove();
+          }
         }
       }
       function stopVideo() {
@@ -81,22 +76,35 @@
 
       TestURL="https://www.googleapis.com/youtube/v3/videos?id=7lCDEYXw3mM&key=AIzaSyANr_F1TtEaRlqnA1IomTCdtOADarY98Bg%20&part=snippet"
 
-      function testGetTitle(){
+      function getTitle(videoId,returnFunction){
+        APIKEY="AIzaSyANr_F1TtEaRlqnA1IomTCdtOADarY98Bg"
+        URLBase="https://www.googleapis.com/youtube/v3/videos?id="
+        URLEnd="&key="+APIKEY+"%20&part=snippet"
+
+        URL=URLBase+videoId+URLEnd
+        var title;
         $.get(URL, function(data) {
           $('.result').html(data);
           title=data.items[0].snippet.title;
+          returnFunction(title);
         });
       }
-      testGetTitle();
       //window.open(URL);
       var validID="X7f2eXQxfHk"
 
 
 
       function addVid(){
-        alert("in addVid func");
         newVideoId=$("#vidIDfield").val();
-        player.loadVideoById(newVideoId);
+        $("#vidIDfield").val("");
+        videoStack.push(newVideoId);
+        getTitle(newVideoId,addToVisualQueue);
+      }
+
+      function addToVisualQueue(trackName){
+        var li = document.createElement("li");
+        li.appendChild(document.createTextNode(trackName));
+        $("#queue").append(li);
       }
     </script>
 
@@ -104,6 +112,7 @@
       <input ID=vidIDfield type="text" name="inputVidID"><br>
       <button ID="addVid_btn" onclick="addVid()">Click to add to queue</button>
 
-
+      </br>
+      <ol ID ="queue" type="1"/>
   </body>
 </html>
